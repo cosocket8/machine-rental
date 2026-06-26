@@ -1,16 +1,17 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabaseClient'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import RenterDashboard from '../dashboards/RenterDashboard'
 import OwnerDashboard from '../dashboards/OwnerDashboard'
 import AdminDashboard from '../dashboards/AdminDashboard'
 
 export default function Home() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [location.key])
 
   const load = async () => {
     const { data: { user } } = await supabase.auth.getUser()

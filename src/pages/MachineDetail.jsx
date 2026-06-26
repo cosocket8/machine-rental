@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabaseClient'
 import { useParams, useNavigate } from 'react-router-dom'
+import AvailabilityCalendar from '../components/AvailabilityCalendar'
+import { useToast } from '../components/Toast'
 
 export default function MachineDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { showToast } = useToast()
   const [machine, setMachine] = useState(null)
   const [bookedRanges, setBookedRanges] = useState([])
   const [activeImg, setActiveImg] = useState(0)
@@ -24,13 +27,12 @@ export default function MachineDetail() {
     setLoading(true)
     const { data: m } = await supabase.from('machines').select('*').eq('id', id).single()
     setMachine(m)
-    // get confirmed/pending bookings to block those dates
     const { data: b } = await supabase
       .from('bookings').select('start_date, end_date')
       .eq('machine_id', id).in('status', ['pending', 'confirmed'])
     setBookedRanges(b || [])
-    // prefill renter info from their profile
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { session } } = await supabase.auth.getSession()
+    const user = session?.user
     if (user) {
       const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single()
       if (prof) setForm(f => ({ ...f,
@@ -45,7 +47,18 @@ export default function MachineDetail() {
     setForm({ ...form, [name]: type === 'checkbox' ? checked : value })
   }
 
-  // ---- rent calculation ----
+  const handleSelectDate = (dateStr) => {
+    if (!form.start_date || (form.start_date && form.end_date)) {
+      setForm({ ...form, start_date: dateStr, end_date: '' })
+    } else {
+      if (dateStr < form.start_date) {
+        setForm({ ...form, start_date: dateStr, end_date: '' })
+      } else {
+        setForm({ ...form, end_date: dateStr })
+      }
+    }
+  }
+
   const calcDays = () => {
     if (!form.start_date || !form.end_date) return 0
     const s = new Date(form.start_date), e = new Date(form.end_date)
@@ -58,7 +71,6 @@ export default function MachineDetail() {
     ? days * (Number(machine?.helper_charge) || 0) : 0
   const totalAmount = machineCost + helperCost
 
-  // ---- check date overlap with existing bookings ----
   const datesOverlap = () => {
     if (!form.start_date || !form.end_date) return false
     const s = new Date(form.start_date), e = new Date(form.end_date)
@@ -71,14 +83,15 @@ export default function MachineDetail() {
   const handleBook = async () => {
     setError('')
     if (!form.renter_name || !form.renter_mobile || !form.renter_email || !form.renter_pan) {
-      setError('Please fill all your details.'); return
+      showToast('Please fill all your details.', 'error'); return
     }
-    if (!form.start_date || !form.end_date) { setError('Select start and end dates.'); return }
-    if (days <= 0) { setError('End date must be on or after start date.'); return }
-    if (datesOverlap()) { setError('Those dates are already booked. Pick different dates.'); return }
+    if (!form.start_date || !form.end_date) { showToast('Select start and end dates.', 'error'); return }
+    if (days <= 0) { showToast('End date must be on or after start date.', 'error'); return }
+    if (datesOverlap()) { showToast('Those dates are already booked.', 'error'); return }
 
     setSubmitting(true)
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { session } } = await supabase.auth.getSession()
+    const user = session?.user
     const { error: insErr } = await supabase.from('bookings').insert({
       machine_id: id, renter_id: user.id,
       renter_name: form.renter_name, renter_mobile: form.renter_mobile,
@@ -88,9 +101,10 @@ export default function MachineDetail() {
       status: 'pending'
     })
     setSubmitting(false)
-    if (insErr) { setError(insErr.message); return }
+    if (insErr) { showToast(insErr.message, 'error'); return }
+    showToast('Booking request sent successfully!', 'success')
     setSuccess(true)
-    fetchData() // refresh blocked dates
+    fetchData()
   }
 
   if (loading) return <div className="p-10 text-center">Loading...</div>
@@ -98,11 +112,11 @@ export default function MachineDetail() {
 
   if (success) return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-gray-100">
-      <h1 className="text-3xl font-bold text-green-600">✅ Booking Request Sent!</h1>
+      <h1 className="text-3xl font-bold text-green-600">Booking Request Sent!</h1>
       <p className="text-gray-600">The owner will confirm your booking shortly.</p>
       <p className="text-gray-600">Total: ₹{totalAmount} for {days} day(s)</p>
       <button onClick={() => navigate('/browse')}
-        className="bg-blue-600 text-white px-6 py-2 rounded-lg">Browse more machines</button>
+        className="bg-brand-600 text-white px-6 py-2 rounded-lg">Browse more machines</button>
     </div>
   )
 
@@ -112,7 +126,6 @@ export default function MachineDetail() {
         <button onClick={() => navigate('/browse')} className="text-sm text-gray-600 mb-4">← Back</button>
 
         <div className="grid md:grid-cols-2 gap-6">
-          {/* LEFT: images + info */}
           <div>
             <img src={machine.images?.[activeImg] || 'https://placehold.co/600x400?text=No+Image'}
               alt={machine.title} className="w-full h-72 object-cover rounded-2xl" />
@@ -120,12 +133,12 @@ export default function MachineDetail() {
               <div className="flex gap-2 mt-3">
                 {machine.images.map((img, i) => (
                   <img key={i} src={img} onClick={() => setActiveImg(i)}
-                    className={`h-16 w-16 object-cover rounded-lg cursor-pointer border-2 ${i === activeImg ? 'border-blue-600' : 'border-transparent'}`} />
+                    className={`h-16 w-16 object-cover rounded-lg cursor-pointer border-2 ${i === activeImg ? 'border-brand-600' : 'border-transparent'}`} />
                 ))}
               </div>
             )}
             <div className="bg-white rounded-2xl shadow p-5 mt-4">
-              <p className="text-xs text-blue-600 font-medium">{machine.machine_type}</p>
+              <p className="text-xs text-brand-600 font-medium">{machine.machine_type}</p>
               <h1 className="text-2xl font-bold">{machine.title}</h1>
               <p className="text-gray-500 mb-2">📍 {machine.city}</p>
               <p className="text-gray-700 text-sm mb-3">{machine.description}</p>
@@ -136,18 +149,23 @@ export default function MachineDetail() {
             </div>
           </div>
 
-          {/* RIGHT: booking form */}
           <div className="bg-white rounded-2xl shadow p-6 h-fit">
             <h2 className="font-bold text-lg mb-4">Book this machine</h2>
 
-            {bookedRanges.length > 0 && (
-              <div className="bg-red-50 text-red-700 text-sm rounded-lg p-3 mb-4">
-                <p className="font-medium mb-1">Already booked (unavailable):</p>
-                {bookedRanges.map((r, i) => (
-                  <p key={i}>• {r.start_date} → {r.end_date}</p>
-                ))}
-              </div>
-            )}
+            <div className="mb-4">
+              <p className="text-sm font-medium mb-2">Select your dates</p>
+              <AvailabilityCalendar
+                bookedRanges={bookedRanges}
+                startDate={form.start_date}
+                endDate={form.end_date}
+                onSelectDate={handleSelectDate}
+              />
+              {form.start_date && (
+                <p className="text-sm text-gray-600 mt-2">
+                  {form.start_date}{form.end_date ? ` → ${form.end_date}` : ' (now pick an end date)'}
+                </p>
+              )}
+            </div>
 
             <input name="renter_name" value={form.renter_name} onChange={handleChange}
               placeholder="Full Name" className="w-full border rounded-lg p-3 mb-3" />
@@ -157,21 +175,6 @@ export default function MachineDetail() {
               placeholder="Email Address" className="w-full border rounded-lg p-3 mb-3" />
             <input name="renter_pan" value={form.renter_pan} onChange={handleChange}
               placeholder="PAN Number" className="w-full border rounded-lg p-3 mb-3" />
-
-            <div className="grid grid-cols-2 gap-3 mb-3">
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Start Date</label>
-                <input name="start_date" type="date" value={form.start_date} onChange={handleChange}
-                  min={new Date().toISOString().split('T')[0]}
-                  className="w-full border rounded-lg p-2" />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">End Date</label>
-                <input name="end_date" type="date" value={form.end_date} onChange={handleChange}
-                  min={form.start_date || new Date().toISOString().split('T')[0]}
-                  className="w-full border rounded-lg p-2" />
-              </div>
-            </div>
 
             {machine.helper_available && (
               <div className="flex items-center gap-2 mb-4">
@@ -183,7 +186,6 @@ export default function MachineDetail() {
               </div>
             )}
 
-            {/* live rent breakdown */}
             {days > 0 && (
               <div className="bg-gray-50 rounded-lg p-3 mb-4 text-sm">
                 <div className="flex justify-between"><span>Duration</span><span>{days} day(s)</span></div>
@@ -200,7 +202,7 @@ export default function MachineDetail() {
             {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
 
             <button onClick={handleBook} disabled={submitting}
-              className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700">
+              className="w-full bg-brand-600 text-white py-3 rounded-lg font-semibold hover:bg-brand-700">
               {submitting ? 'Booking...' : 'Confirm Booking'}
             </button>
           </div>

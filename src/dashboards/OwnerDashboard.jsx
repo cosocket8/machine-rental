@@ -12,11 +12,19 @@ export default function OwnerDashboard() {
     const { data: { user } } = await supabase.auth.getUser()
     const { data: mac } = await supabase.from('machines').select('*').eq('owner_id', user.id)
     setMachines(mac || [])
-    const { data: bk } = await supabase
-      .from('bookings')
-      .select('*, machines(title, owner_id)')
-      .order('created_at', { ascending: false })
-    setBookings((bk || []).filter(b => b.machines?.owner_id === user.id))
+
+    let bookingData = []
+    if (mac?.length) {
+      const machineIds = mac.map(m => m.id)
+      const { data: bk } = await supabase
+        .from('bookings')
+        .select('*, machines(title, owner_id)')
+        .in('machine_id', machineIds)
+        .order('created_at', { ascending: false })
+      bookingData = bk || []
+    }
+
+    setBookings(bookingData)
     setLoading(false)
   }
 
