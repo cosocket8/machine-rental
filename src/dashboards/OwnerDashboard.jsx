@@ -3,7 +3,9 @@ import { supabase } from '../supabaseClient'
 import OwnerCalendar from '../components/OwnerCalendar'
 import StatusBadge from '../components/StatusBadge'
 import { sendConfirmedEmail, sendRejectedEmail } from '../utils/sendEmail'
+import { useToast } from '../components/Toast'
 export default function OwnerDashboard() {
+  const { showToast } = useToast()
   const [machines, setMachines] = useState([])
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
@@ -31,30 +33,43 @@ export default function OwnerDashboard() {
   }
 
   const setStatus = async (id, status, booking) => {
-    await supabase.from('bookings').update({ status }).eq('id', id)
+    // 1. Update the database FIRST and refresh the UI immediately
+    const { error: updateErr } = await supabase
+      .from('bookings').update({ status }).eq('id', id)
 
-    if (status === 'confirmed') {
-      const { data: { session } } = await supabase.auth.getSession()
-      const { data: ownerProf } = await supabase.from('profiles')
-        .select('full_name, mobile').eq('id', session.user.id).single()
-      await sendConfirmedEmail({
-        renter_name: booking.renter_name, renter_email: booking.renter_email,
-        machine_title: booking.machines?.title,
-        start_date: booking.start_date, end_date: booking.end_date,
-        total_amount: booking.total_amount,
-        owner_name: ownerProf?.full_name, owner_mobile: ownerProf?.mobile,
-      })
-    } else if (status === 'cancelled') {
-      await sendRejectedEmail({
-        renter_name: booking.renter_name, renter_email: booking.renter_email,
-        machine_title: booking.machines?.title,
-        start_date: booking.start_date, end_date: booking.end_date,
-      })
+    if (updateErr) {
+      showToast('Update failed: ' + updateErr.message, 'error')
+      return
     }
 
+    // Show success and refresh right away — don't wait for email
     showToast(status === 'confirmed' ? 'Booking accepted ✓' : 'Booking declined',
       status === 'confirmed' ? 'success' : 'error')
-    load()
+    await load()
+
+    // 2. Send email AFTER (wrapped so a failure never blocks the update)
+    try {
+      if (status === 'confirmed') {
+        const { data: { session } } = await supabase.auth.getSession()
+        const { data: ownerProf } = await supabase.from('profiles')
+          .select('full_name, mobile').eq('id', session.user.id).single()
+        await sendConfirmedEmail({
+          renter_name: booking.renter_name, renter_email: booking.renter_email,
+          machine_title: booking.machines?.title,
+          start_date: booking.start_date, end_date: booking.end_date,
+          total_amount: booking.total_amount,
+          owner_name: ownerProf?.full_name, owner_mobile: ownerProf?.mobile,
+        })
+      } else if (status === 'cancelled') {
+        await sendRejectedEmail({
+          renter_name: booking.renter_name, renter_email: booking.renter_email,
+          machine_title: booking.machines?.title,
+          start_date: booking.start_date, end_date: booking.end_date,
+        })
+      }
+    } catch (e) {
+      console.error('Email failed (booking status was still updated):', e)
+    }
   }
   const deleteMachine = async (id) => {
     if (!confirm('Delete this machine?')) return
