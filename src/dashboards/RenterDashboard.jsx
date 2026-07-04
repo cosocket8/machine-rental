@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabaseClient'
-
+import StatusBadge from '../components/StatusBadge'
 export default function RenterDashboard() {
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
@@ -23,10 +23,7 @@ export default function RenterDashboard() {
     load()
   }
 
-  const badge = (s) => ({
-    pending: 'bg-yellow-100 text-yellow-700', confirmed: 'bg-green-100 text-green-700',
-    completed: 'bg-blue-100 text-blue-700', cancelled: 'bg-red-100 text-red-700'
-  }[s])
+  
 
   if (loading) return <p>Loading...</p>
 
@@ -45,7 +42,7 @@ export default function RenterDashboard() {
               <p className="text-sm font-medium">₹{b.total_amount} {b.helper_needed && '• with helper'}</p>
             </div>
             <div className="text-right">
-              <span className={`text-xs px-3 py-1 rounded-full ${badge(b.status)}`}>{b.status}</span>
+              <StatusBadge status={b.status} />
               {b.status === 'pending' && (
                 <button onClick={() => cancel(b.id)}
                   className="block text-xs text-red-500 mt-2">Cancel</button>

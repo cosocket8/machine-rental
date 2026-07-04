@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabaseClient'
-
+import OwnerCalendar from '../components/OwnerCalendar'
+import StatusBadge from '../components/StatusBadge'
+import { sendConfirmedEmail, sendRejectedEmail } from '../utils/sendEmail'
 export default function OwnerDashboard() {
   const [machines, setMachines] = useState([])
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
-
+  const [openCalendar, setOpenCalendar] = useState(null)
   useEffect(() => { load() }, [])
 
   const load = async () => {
@@ -28,8 +30,30 @@ export default function OwnerDashboard() {
     setLoading(false)
   }
 
-  const setStatus = async (id, status) => {
+  const setStatus = async (id, status, booking) => {
     await supabase.from('bookings').update({ status }).eq('id', id)
+
+    if (status === 'confirmed') {
+      const { data: { session } } = await supabase.auth.getSession()
+      const { data: ownerProf } = await supabase.from('profiles')
+        .select('full_name, mobile').eq('id', session.user.id).single()
+      await sendConfirmedEmail({
+        renter_name: booking.renter_name, renter_email: booking.renter_email,
+        machine_title: booking.machines?.title,
+        start_date: booking.start_date, end_date: booking.end_date,
+        total_amount: booking.total_amount,
+        owner_name: ownerProf?.full_name, owner_mobile: ownerProf?.mobile,
+      })
+    } else if (status === 'cancelled') {
+      await sendRejectedEmail({
+        renter_name: booking.renter_name, renter_email: booking.renter_email,
+        machine_title: booking.machines?.title,
+        start_date: booking.start_date, end_date: booking.end_date,
+      })
+    }
+
+    showToast(status === 'confirmed' ? 'Booking accepted ✓' : 'Booking declined',
+      status === 'confirmed' ? 'success' : 'error')
     load()
   }
   const deleteMachine = async (id) => {
@@ -55,13 +79,13 @@ export default function OwnerDashboard() {
                   <p className="text-sm mt-1">{b.renter_name} • {b.renter_mobile} • {b.renter_email}</p>
                   <p className="text-xs text-gray-400">PAN: {b.renter_pan} {b.helper_needed && '• needs helper'}</p>
                 </div>
-                <span className="text-xs px-3 py-1 rounded-full bg-gray-100">{b.status}</span>
+                <StatusBadge status={b.status} />
               </div>
               {b.status === 'pending' && (
                 <div className="flex gap-2 mt-3">
-                  <button onClick={() => setStatus(b.id, 'confirmed')}
+                  <button onClick={() => setStatus(b.id, 'confirmed',b)}
                     className="bg-green-600 text-white text-sm px-4 py-2 rounded-lg">Accept</button>
-                  <button onClick={() => setStatus(b.id, 'cancelled')}
+                  <button onClick={() => setStatus(b.id, 'cancelled',b)}
                     className="bg-red-500 text-white text-sm px-4 py-2 rounded-lg">Reject</button>
                 </div>
               )}
@@ -71,23 +95,56 @@ export default function OwnerDashboard() {
       </section>
 
       <section>
-        <h2 className="text-2xl font-bold mb-4">My Machines ({machines.length})</h2>
-        <div className="grid md:grid-cols-2 gap-4">
-          {machines.map(m => (
-            <div key={m.id} className="bg-white rounded-xl shadow p-4 flex gap-4">
-              <img src={m.images?.[0] || 'https://placehold.co/80'}
-                className="h-16 w-16 object-cover rounded-lg" />
-              <div className="flex-1">
-                <h3 className="font-bold">{m.title}</h3>
-                <p className="text-sm text-gray-500">{m.machine_type} • {m.city}</p>
-                <p className="text-sm">₹{m.daily_rate}/day</p>
-              </div>
-              <button onClick={() => deleteMachine(m.id)}
-                className="text-xs text-red-500 self-start">Delete</button>
-            </div>
-          ))}
+  <h2 className="text-2xl font-bold mb-4">
+    My Machines ({machines.length})
+  </h2>
+
+  <div className="space-y-4">
+    {machines.map((m) => (
+      <div key={m.id} className="bg-white rounded-xl shadow p-4">
+        <div className="flex gap-4">
+          <img
+            src={m.images?.[0] || "https://placehold.co/80"}
+            alt={m.title}
+            className="h-16 w-16 object-cover rounded-lg"
+          />
+
+          <div className="flex-1">
+            <h3 className="font-bold">{m.title}</h3>
+            <p className="text-sm text-gray-500">
+              {m.machine_type} • {m.city}
+            </p>
+            <p className="text-sm">₹{m.daily_rate}/day</p>
+          </div>
+
+          <button
+            onClick={() => deleteMachine(m.id)}
+            className="text-xs text-red-500 self-start"
+          >
+            Delete
+          </button>
         </div>
-      </section>
+
+        <button
+          onClick={() =>
+            setOpenCalendar(openCalendar === m.id ? null : m.id)
+          }
+          className="mt-3 text-sm text-brand-600 border border-brand-600 rounded-lg px-3 py-1 hover:bg-brand-50"
+        >
+          {openCalendar === m.id
+            ? "Hide Calendar"
+            : "📅 Manage Availability"}
+        </button>
+
+        {openCalendar === m.id && (
+          <div className="mt-3">
+            <OwnerCalendar machineId={m.id} />
+          </div>
+        )}
+      </div>
+    ))}
+  </div>
+</section>
     </div>
   )
 }

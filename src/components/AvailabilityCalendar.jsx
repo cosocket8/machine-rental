@@ -9,7 +9,7 @@ const fmt = (d) => {
   return `${y}-${m}-${day}`
 }
 
-export default function AvailabilityCalendar({ bookedRanges, startDate, endDate, onSelectDate }) {
+export default function AvailabilityCalendar({ bookedRanges, ownerBlocks = [],startDate, endDate, onSelectDate }) {
   const today = new Date(); today.setHours(0, 0, 0, 0)
   const [viewMonth, setViewMonth] = useState(new Date(today.getFullYear(), today.getMonth(), 1))
 
@@ -20,6 +20,7 @@ export default function AvailabilityCalendar({ bookedRanges, startDate, endDate,
     const end = new Date(r.end_date)
     while (d <= end) { bookedSet.add(fmt(d)); d.setDate(d.getDate() + 1) }
   })
+  ;(ownerBlocks || []).forEach(d => bookedSet.add(d))
 
   const year = viewMonth.getFullYear()
   const month = viewMonth.getMonth()

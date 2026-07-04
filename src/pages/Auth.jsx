@@ -1,14 +1,15 @@
 import { useState } from 'react'
 import { supabase } from '../supabaseClient'
 import { useNavigate } from 'react-router-dom'
-
+import { useLocation } from 'react-router-dom'
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true)
   const [form, setForm] = useState({ email: '', password: '', fullName: '', mobile: '', role: 'renter' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const navigate = useNavigate()
-
+  const location = useLocation()
+  const redirectTo = location.state?.from?.pathname || '/home'
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value })
 
   const handleSubmit = async () => {
@@ -18,7 +19,7 @@ export default function Auth() {
         email: form.email, password: form.password
       })
       if (error) setError(error.message)
-      else navigate('/home')
+      else navigate(redirectTo)
     } else {
       const { data, error } = await supabase.auth.signUp({
         email: form.email, password: form.password

@@ -3,6 +3,7 @@ import { supabase } from '../supabaseClient'
 import { useParams, useNavigate } from 'react-router-dom'
 import AvailabilityCalendar from '../components/AvailabilityCalendar'
 import { useToast } from '../components/Toast'
+import { sendBookingEmail } from '../utils/sendEmail'
 
 export default function MachineDetail() {
   const { id } = useParams()
@@ -10,6 +11,7 @@ export default function MachineDetail() {
   const { showToast } = useToast()
   const [machine, setMachine] = useState(null)
   const [bookedRanges, setBookedRanges] = useState([])
+  const [ownerBlocks, setOwnerBlocks] = useState([])
   const [activeImg, setActiveImg] = useState(0)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -31,6 +33,9 @@ export default function MachineDetail() {
       .from('bookings').select('start_date, end_date')
       .eq('machine_id', id).in('status', ['pending', 'confirmed'])
     setBookedRanges(b || [])
+    const { data: blocks } = await supabase
+      .from('owner_blocked_slots').select('blocked_date').eq('machine_id', id)
+    setOwnerBlocks((blocks || []).map(b => b.blocked_date))
     const { data: { session } } = await supabase.auth.getSession()
     const user = session?.user
     if (user) {
@@ -102,7 +107,19 @@ export default function MachineDetail() {
     })
     setSubmitting(false)
     if (insErr) { showToast(insErr.message, 'error'); return }
-    showToast('Booking request sent successfully!', 'success')
+
+    // send confirmation email
+    await sendBookingEmail({
+      renter_name: form.renter_name,
+      renter_email: form.renter_email,
+      machine_title: machine.title,
+      start_date: form.start_date,
+      end_date: form.end_date,
+      days, total_amount: totalAmount,
+      helper_needed: form.helper_needed,
+    })
+
+    showToast('Booking sent! Check your email for confirmation.', 'success')
     setSuccess(true)
     fetchData()
   }
@@ -156,6 +173,7 @@ export default function MachineDetail() {
               <p className="text-sm font-medium mb-2">Select your dates</p>
               <AvailabilityCalendar
                 bookedRanges={bookedRanges}
+                ownerBlocks={ownerBlocks}
                 startDate={form.start_date}
                 endDate={form.end_date}
                 onSelectDate={handleSelectDate}
