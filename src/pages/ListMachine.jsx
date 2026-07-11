@@ -256,15 +256,9 @@ export default function ListMachine() {
           </option>
 
 
-          {form.category &&
-            MACHINE_CATEGORIES[form.category]
-              .map(m => (
-
-                <option key={m} value={m}>
-                  {m}
-                </option>
-
-              ))}
+          {form.category && MACHINE_CATEGORIES[form.category].map(m => (
+            <option key={m.name} value={m.name}>{m.name}</option>
+          ))}
 
         </select>
 

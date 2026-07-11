@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import AvailabilityCalendar from '../components/AvailabilityCalendar'
 import { useToast } from '../components/Toast'
 import { sendBookingEmail } from '../utils/sendEmail'
-
+import { getProductsForType } from '../data/machineCategories'
 export default function MachineDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -159,6 +159,12 @@ export default function MachineDetail() {
               <h1 className="text-2xl font-bold">{machine.title}</h1>
               <p className="text-gray-500 mb-2">📍 {machine.city}</p>
               <p className="text-gray-700 text-sm mb-3">{machine.description}</p>
+              {getProductsForType(machine.machine_type) && (
+                <div className="bg-brand-50 rounded-lg p-3 mb-3">
+                  <p className="text-xs font-semibold text-brand-700 mb-1">Products you can make with this machine</p>
+                  <p className="text-sm text-gray-700">{getProductsForType(machine.machine_type)}</p>
+                </div>
+              )}
               <p className="font-bold text-xl">₹{machine.daily_rate}<span className="text-sm font-normal text-gray-500">/day</span></p>
               {machine.helper_available && (
                 <p className="text-sm text-green-700 mt-1">👷 Helper available (+₹{machine.helper_charge}/day)</p>

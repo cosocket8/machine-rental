@@ -106,7 +106,9 @@ export default function Browse() {
               disabled={!filters.category}
               className="w-full border border-gray-200 rounded-lg p-2 mb-4 text-sm outline-none focus:border-brand-500 disabled:bg-gray-50">
               <option value="">All types</option>
-              {filters.category && MACHINE_CATEGORIES[filters.category].map(m => <option key={m} value={m}>{m}</option>)}
+              {filters.category && MACHINE_CATEGORIES[filters.category].map(m => (
+              <option key={m.name} value={m.name}>{m.name}</option>
+            ))}
             </select>
 
             <label className="block text-sm font-medium mb-1">City</label>
