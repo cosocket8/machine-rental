@@ -52,7 +52,7 @@ export default function Auth() {
     }
     setLoading(true); setError('')
     const { error } = await supabase.auth.resetPasswordForEmail(form.email, {
-      redirectTo: `${window.location.origin}/reset-password`
+      redirectTo: 'https://www.cosocket.in/reset-password'
     })
     setLoading(false)
     if (error) setError(error.message)
