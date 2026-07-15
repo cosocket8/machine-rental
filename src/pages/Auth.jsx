@@ -2,14 +2,18 @@ import { useState } from 'react'
 import { supabase } from '../supabaseClient'
 import { useNavigate } from 'react-router-dom'
 import { useLocation } from 'react-router-dom'
+
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true)
   const [form, setForm] = useState({ email: '', password: '', fullName: '', mobile: '', role: 'renter' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [signupSuccess, setSignupSuccess] = useState(false)
+  const [resetSent, setResetSent] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
   const redirectTo = location.state?.from?.pathname || '/home'
+
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value })
 
   const handleSubmit = async () => {
@@ -21,23 +25,42 @@ export default function Auth() {
       if (error) setError(error.message)
       else navigate(redirectTo)
     } else {
-      const { data, error } = await supabase.auth.signUp({
-        email: form.email, password: form.password
+      const { error } = await supabase.auth.signUp({
+        email: form.email,
+        password: form.password,
+        options: {
+          data: {
+            full_name: form.fullName,
+            mobile: form.mobile,
+            role: form.role
+          }
+        }
       })
       if (error) { setError(error.message) }
       else {
-        // create profile row with role
-        await supabase.from('profiles').insert({
-          id: data.user.id,
-          full_name: form.fullName,
-          mobile: form.mobile,
-          email: form.email,
-          role: form.role
-        })
-        navigate('/home')
+        // Profile row is created automatically by the database trigger.
+        // With email confirmation ON, the user must verify before logging in.
+        setError('')
+        setSignupSuccess(true)
       }
     }
     setLoading(false)
+  }
+  const handleForgotPassword = async () => {
+    if (!form.email) {
+      setError('Please enter your email address first, then click "Forgot password".')
+      return
+    }
+    setLoading(true); setError('')
+    const { error } = await supabase.auth.resetPasswordForEmail(form.email, {
+      redirectTo: `${window.location.origin}/reset-password`
+    })
+    setLoading(false)
+    if (error) setError(error.message)
+    else {
+      setError('')
+      setResetSent(true)
+    }
   }
 
   return (
@@ -47,6 +70,13 @@ export default function Auth() {
         <p className="text-center text-gray-500 mb-6">
           {isLogin ? 'Welcome back' : 'Create your account'}
         </p>
+
+        {signupSuccess && (
+          <div className="bg-green-50 text-green-700 rounded-lg p-4 mb-4 text-sm">
+            ✅ Account created! Please check your email and click the verification
+            link before logging in.
+          </div>
+        )}
 
         {!isLogin && (
           <>
@@ -66,7 +96,18 @@ export default function Auth() {
           className="w-full border rounded-lg p-3 mb-3" />
         <input name="password" type="password" placeholder="Password" onChange={handleChange}
           className="w-full border rounded-lg p-3 mb-4" />
+        {isLogin && (
+          <button onClick={handleForgotPassword}
+            className="text-sm text-blue-600 mb-4 block">
+            Forgot password?
+          </button>
+        )}
 
+        {resetSent && (
+          <div className="bg-green-50 text-green-700 rounded-lg p-3 mb-4 text-sm">
+            ✅ Password reset link sent! Check your email.
+          </div>
+        )}
         {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
 
         <button onClick={handleSubmit} disabled={loading}
@@ -76,7 +117,9 @@ export default function Auth() {
 
         <p className="text-center mt-4 text-sm">
           {isLogin ? "Don't have an account?" : 'Already have an account?'}{' '}
-          <button onClick={() => setIsLogin(!isLogin)} className="text-blue-600 font-medium">
+          <button
+            onClick={() => { setIsLogin(!isLogin); setSignupSuccess(false); setError('') }}
+            className="text-blue-600 font-medium">
             {isLogin ? 'Sign Up' : 'Login'}
           </button>
         </p>

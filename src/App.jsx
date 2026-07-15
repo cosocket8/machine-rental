@@ -7,6 +7,7 @@ import Browse from './pages/Browse'
 import ListMachine from './pages/ListMachine'
 import MachineDetail from './pages/MachineDetail'
 import ProtectedRoute from './components/ProtectedRoute'
+import ResetPassword from './pages/ResetPassword'
 export default function App() {
   return (
     <BrowserRouter>
@@ -25,6 +26,8 @@ export default function App() {
   <Route path="/machine/:id" element={
     <ProtectedRoute><MachineDetail /></ProtectedRoute>
   } />
+  <Route path="/reset-password" element={<ResetPassword />} />
+
 </Routes>
     </BrowserRouter>
   )
