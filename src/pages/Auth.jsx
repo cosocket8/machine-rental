@@ -38,14 +38,13 @@ export default function Auth() {
       })
       if (error) { setError(error.message) }
       else {
-        // Profile row is created automatically by the database trigger.
-        // With email confirmation ON, the user must verify before logging in.
         setError('')
         setSignupSuccess(true)
       }
     }
     setLoading(false)
   }
+
   const handleForgotPassword = async () => {
     if (!form.email) {
       setError('Please enter your email address first, then click "Forgot password".')
@@ -57,10 +56,17 @@ export default function Auth() {
     })
     setLoading(false)
     if (error) setError(error.message)
-    else {
-      setError('')
-      setResetSent(true)
-    }
+    else { setError(''); setResetSent(true) }
+  }
+
+  const handleGoogleLogin = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/home`
+      }
+    })
+    if (error) setError(error.message)
   }
 
   return (
@@ -75,6 +81,12 @@ export default function Auth() {
           <div className="bg-green-50 text-green-700 rounded-lg p-4 mb-4 text-sm">
             ✅ Account created! Please check your email and click the verification
             link before logging in.
+          </div>
+        )}
+
+        {resetSent && (
+          <div className="bg-green-50 text-green-700 rounded-lg p-3 mb-4 text-sm">
+            ✅ Password reset link sent! Check your email.
           </div>
         )}
 
@@ -95,7 +107,8 @@ export default function Auth() {
         <input name="email" type="email" placeholder="Email" onChange={handleChange}
           className="w-full border rounded-lg p-3 mb-3" />
         <input name="password" type="password" placeholder="Password" onChange={handleChange}
-          className="w-full border rounded-lg p-3 mb-4" />
+          className="w-full border rounded-lg p-3 mb-2" />
+
         {isLogin && (
           <button onClick={handleForgotPassword}
             className="text-sm text-blue-600 mb-4 block">
@@ -103,11 +116,6 @@ export default function Auth() {
           </button>
         )}
 
-        {resetSent && (
-          <div className="bg-green-50 text-green-700 rounded-lg p-3 mb-4 text-sm">
-            ✅ Password reset link sent! Check your email.
-          </div>
-        )}
         {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
 
         <button onClick={handleSubmit} disabled={loading}
@@ -115,10 +123,23 @@ export default function Auth() {
           {loading ? 'Please wait...' : isLogin ? 'Login' : 'Sign Up'}
         </button>
 
+        {/* ===== OR divider + Google login at the bottom ===== */}
+        <div className="flex items-center gap-3 my-4">
+          <div className="flex-1 h-px bg-gray-200"></div>
+          <span className="text-xs text-gray-400">OR</span>
+          <div className="flex-1 h-px bg-gray-200"></div>
+        </div>
+
+        <button onClick={handleGoogleLogin}
+          className="w-full border border-gray-300 py-3 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-gray-50">
+          <img src="https://www.google.com/favicon.ico" alt="" className="w-5 h-5" />
+          Continue with Google
+        </button>
+
         <p className="text-center mt-4 text-sm">
           {isLogin ? "Don't have an account?" : 'Already have an account?'}{' '}
           <button
-            onClick={() => { setIsLogin(!isLogin); setSignupSuccess(false); setError('') }}
+            onClick={() => { setIsLogin(!isLogin); setSignupSuccess(false); setResetSent(false); setError('') }}
             className="text-blue-600 font-medium">
             {isLogin ? 'Sign Up' : 'Login'}
           </button>

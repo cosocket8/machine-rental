@@ -31,6 +31,13 @@ export default function Home() {
       .eq('id', user.id)
       .single()
 
+
+     if (data && !data.profile_completed) {
+      navigate('/complete-profile')
+      return
+    }
+
+
     setProfile(data)
     setLoading(false)
   }
