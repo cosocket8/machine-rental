@@ -27,9 +27,12 @@ export default function Navbar() {
     <nav className="bg-white shadow-sm sticky top-0 z-40">
       <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
         <button onClick={() => navigate(isAdmin ? '/home' : '/')}
-          className="text-xl font-extrabold text-brand-600">
-          COSOCKET {isAdmin && <span className="text-sm font-medium text-gray-400">Admin</span>}
-        </button>
+  className="flex flex-col items-start leading-tight">
+  <span className="text-xl font-extrabold text-black">
+    COSOCKET {isAdmin && <span className="text-sm font-medium text-gray-400">Admin</span>}
+  </span>
+  <span className="text-xs font-medium text-gray-500">MachineRent</span>
+</button>
         <div className="flex items-center gap-3">
           {/* Browse only for non-admins */}
           {!isAdmin && (
