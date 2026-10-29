@@ -28,7 +28,7 @@ export default function Navbar() {
       <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
         <button onClick={() => navigate(isAdmin ? '/home' : '/')}
   className="flex items-center">
-  <img src={logo} alt="Cosocket" className="h-12 object-contain rounded-md" />
+  <img src={logo} alt="Cosocket" className="h-20 object-contain rounded-md" />
 </button>
         <div className="flex items-center gap-3">
           {/* Browse only for non-admins */}
