@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
-
+import logo from '../assets/logo.jpeg'
 export default function Navbar() {
   const navigate = useNavigate()
   const [user, setUser] = useState(null)
@@ -24,22 +24,19 @@ export default function Navbar() {
   const isAdmin = role === 'admin'
 
   return (
-    <nav className="bg-white shadow-sm sticky top-0 z-40">
+    <nav className="bg-[#0d1b2a] shadow-sm sticky top-0 z-40">
       <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
         <button onClick={() => navigate(isAdmin ? '/home' : '/')}
-  className="flex flex-col items-start leading-tight">
-  <span className="text-xl font-extrabold text-black">
-    COSOCKET {isAdmin && <span className="text-sm font-medium text-gray-400">Admin</span>}
-  </span>
-  <span className="text-xs font-medium text-gray-500">MachineRent</span>
+  className="flex items-center">
+  <img src={logo} alt="Cosocket" className="h-12 object-contain rounded-md" />
 </button>
         <div className="flex items-center gap-3">
           {/* Browse only for non-admins */}
           {!isAdmin && (
             <button onClick={() => navigate('/browse')}
-              className="text-sm font-medium text-gray-600 hover:text-brand-600">
-              Browse
-            </button>
+  className="text-sm font-medium text-gray-200 hover:text-white">
+  Browse
+</button>
           )}
           {user ? (
             <button onClick={() => navigate('/home')}
