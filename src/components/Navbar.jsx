@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import logo from '../assets/logo.jpeg'
+
 export default function Navbar() {
   const navigate = useNavigate()
   const [user, setUser] = useState(null)
@@ -27,16 +28,22 @@ export default function Navbar() {
     <nav className="bg-[#0d1b2a] shadow-sm sticky top-0 z-40">
       <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
         <button onClick={() => navigate(isAdmin ? '/home' : '/')}
-  className="flex items-center">
-  <img src={logo} alt="Cosocket" className="h-20 object-contain rounded-md" />
-</button>
+          className="flex items-center">
+          <img src={logo} alt="Cosocket" className="h-20 object-contain rounded-md" />
+        </button>
         <div className="flex items-center gap-3">
-          {/* Browse only for non-admins */}
+          {/* List Your Machine (orange) + Browse — only for non-admins */}
           {!isAdmin && (
-            <button onClick={() => navigate('/browse')}
-  className="text-sm font-medium text-gray-200 hover:text-white">
-  Browse
-</button>
+            <>
+              <button onClick={() => navigate('/list-machine')}
+                className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold px-4 py-2 rounded-lg">
+                <span className="text-lg leading-none">⊕</span> List Your Machine
+              </button>
+              <button onClick={() => navigate('/browse')}
+                className="text-sm font-medium text-gray-200 hover:text-white">
+                Browse
+              </button>
+            </>
           )}
           {user ? (
             <button onClick={() => navigate('/home')}
