@@ -15,6 +15,7 @@ export default function App() {
       <Navbar />
       <Routes>
   <Route path="/" element={<Browse />} />
+  <Route path="/about" element={<Landing />} />
   <Route path="/login" element={<Auth />} />
   <Route path="/browse" element={<Browse />} />
 
@@ -29,7 +30,6 @@ export default function App() {
   } />
   <Route path="/reset-password" element={<ResetPassword />} />
   <Route path="/complete-profile" element={<CompleteProfile />} />
-
 </Routes>
     </BrowserRouter>
   )

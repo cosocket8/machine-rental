@@ -39,15 +39,15 @@ export default function Navbar() {
                 className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold px-4 py-2 rounded-lg">
                 <span className="text-lg leading-none">⊕</span> List Your Machine
               </button>
-              <button onClick={() => navigate('/browse')}
-                className="text-sm font-medium text-gray-200 hover:text-white">
-                Browse
-              </button>
+              <button onClick={() => navigate('/about')}
+  className="border border-gray-400 text-gray-200 hover:bg-white hover:text-[#0d1b2a] text-sm font-medium px-4 py-2 rounded-lg transition">
+  About Us
+</button>
             </>
           )}
           {user ? (
             <button onClick={() => navigate('/home')}
-              className="bg-brand-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-brand-700">
+              className="bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-medium px-4 py-2 rounded-lg">
               Dashboard
             </button>
           ) : (
