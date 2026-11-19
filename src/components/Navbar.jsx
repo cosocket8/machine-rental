@@ -47,7 +47,7 @@ export default function Navbar() {
           )}
           {user ? (
             <button onClick={() => navigate('/home')}
-              className="bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-medium px-4 py-2 rounded-lg">
+              className="bg-brand-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-brand-700">
               Dashboard
             </button>
           ) : (
